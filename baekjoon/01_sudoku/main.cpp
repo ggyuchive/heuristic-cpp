@@ -1,8 +1,8 @@
-#include "solver.hpp"
+#include "SudokuSolver.hpp"
 
-// Usage: ./run.sh 01.in
+// Usage: ./run.sh 01_sudoku 01.in
 int main(int argc, char* argv[]) {
-    std::string filename = argv[1];
-    Solver solver(filename);
+    string filename = argv[1];
+    SudokuSolver solver(filename);
     solver.solve();
 }

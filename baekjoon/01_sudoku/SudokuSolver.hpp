@@ -1,38 +1,57 @@
-#include <string>
 #include <vector>
-#include <fstream>
 #include <iostream>
+#include "../IOUtil.hpp"
+#include "../Solver.hpp"
 
-typedef std::vector<std::vector<bool>> BoolVec2;
-typedef std::vector<std::vector<std::vector<bool>>> BoolVec3;
+typedef vector<vector<bool>> BoolVec2;
+typedef vector<vector<vector<bool>>> BoolVec3;
 
-class Solver
+class SudokuSolver final : public Solver
 {
 public:
-    Solver(std::string in_file_)
-    : in_file(in_file_), total_count(0), blank_count(0), filled_count(0) {
-        size_t s = in_file.find_last_of('/') + 1;
-        size_t e = in_file.find_last_of('.') - 1;
-        std::string prob_str = in_file.substr(s, e-s+1);
-        prob_num = stoi(prob_str);
-        out_file = "./output/" + prob_str + ".out";
+    SudokuSolver(string in_file_)
+    : fileIO(FileIO(in_file_)), total_count(0), blank_count(0), filled_count(0) {}
+
+    void getInput() override {
+        ifstream& fin = fileIO.fin;
+        fin >> N;
+        D = N * N;
+        total_count = D * D;
+        arr.assign(D, vector<int>(D, 0));
+        ans.assign(D, vector<int>(D, 0));
+        for (int i = 0; i < D; i++) {
+            for (int j = 0; j < D; j++) {
+                fin >> arr[i][j];
+                ans[i][j] = arr[i][j];
+                if (arr[i][j] == 0)
+                    blank_count++;
+            }
+        }
     }
 
-    void solve() {
+    void solve() override {
         getInput();
         solver();
-        std::pair<bool, std::string> result = validate();
+        pair<bool, string> result = validate();
         if (result.first)
             getOutput();
         else
-            std::cout << "Error: " << result.second << '\n';
-        getOutput();
-        std::cout << "Filled count: " << filled_count << '\n';
+            cout << "Error: " << result.second << '\n';
+        cout << "Filled count: " << filled_count << '\n';
+    }
+
+    void getOutput() override {
+        ofstream& fout = fileIO.fout;
+        for (auto& v : ans) {
+            for (auto& num : v) fout << num << ' ';
+            fout << '\n';
+        }
     }
 
 private:
     void solver() {
-        std::cout << "Problem: " << prob_num << ", Blank Count: " << blank_count << ", Total Count: " << total_count << '\n';
+        int& prob_num = fileIO.problem_num;
+        cout << "Problem: " << prob_num << ", Blank Count: " << blank_count << ", Total Count: " << total_count << '\n';
         if (prob_num == 5)
             constructSolver();
         else if (prob_num == 1 || prob_num == 2)
@@ -42,7 +61,7 @@ private:
     }
 
     uint64_t bruteforceSolver() {
-        BoolVec3 candidate(D, BoolVec2(D, std::vector<bool>(D, true)));
+        BoolVec3 candidate(D, BoolVec2(D, vector<bool>(D, true)));
 
         uint64_t complexity = 1;
 
@@ -90,32 +109,7 @@ private:
         return complexity;
     }
 
-    void getInput() {
-        std::ifstream fin(in_file);
-        fin >> N;
-        D = N * N;
-        total_count = D * D;
-        arr.resize(D, std::vector<int>(D, 0));
-        ans.resize(D, std::vector<int>(D, 0));
-        for (int i = 0; i < D; i++) {
-            for (int j = 0; j < D; j++) {
-                fin >> arr[i][j];
-                ans[i][j] = arr[i][j];
-                if (arr[i][j] == 0)
-                    blank_count++;
-            }
-        }
-    }
-
-    void getOutput() {
-        std::ofstream fout(out_file);
-        for (auto& v : ans) {
-            for (auto& num : v) fout << num << ' ';
-            fout << '\n';
-        }
-    }
-
-    std::pair<bool, std::string> validate() {
+    pair<bool, string> validate() {
         for (int i = 0; i < D; i++) {
             for (int j = 0; j < D; j++) {
                 if (arr[i][j] == 0 && ans[i][j] > 0)
@@ -123,28 +117,28 @@ private:
             }
         }
         for (int i = 0; i < D; i++) {
-            std::vector<bool> haveRow(D, false);
-            std::vector<bool> haveCol(D, false);
+            vector<bool> haveRow(D, false);
+            vector<bool> haveCol(D, false);
             for (int j = 0; j < D; j++) {
                 int& numRow = ans[i][j];
                 int& numCol = ans[j][i];
 
                 if (numRow <= 0 || numRow > D) {
-                    std::string err = "There is number " + std::to_string(numRow) + " in answer.";
+                    string err = "There is number " + to_string(numRow) + " in answer.";
                     return {false, err};
                 }
                 if (haveRow[numRow-1]) {
-                    std::string err = "Duplicate number " + std::to_string(numRow) + " in answer.";
+                    string err = "Duplicate number " + to_string(numRow) + " in answer.";
                     return {false, err};
                 }
                 haveRow[numRow-1] = true;
 
                 if (numCol <= 0 || numCol > D) {
-                    std::string err = "There is number " + std::to_string(numCol) + " in answer.";
+                    string err = "There is number " + to_string(numCol) + " in answer.";
                     return {false, err};
                 }
                 if (haveCol[numCol-1]) {
-                    std::string err = "Duplicate number " + std::to_string(numCol) + " in answer.";
+                    string err = "Duplicate number " + to_string(numCol) + " in answer.";
                     return {false, err};
                 }                
                 haveCol[numCol-1] = true;
@@ -153,16 +147,16 @@ private:
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
                 int sx = (i/N)*N; int sy = (j/N)*N;
-                std::vector<bool> haveGrid(D, false);
+                vector<bool> haveGrid(D, false);
                 for (int p = sx; p < sx+N; p++) {
                     for (int q = sy; q < sy+N; q++) {
                         int& num = ans[p][q];
                         if (num <= 0 || num > D) {
-                            std::string err = "There is number " + std::to_string(num) + " in answer.";
+                            string err = "There is number " + to_string(num) + " in answer.";
                             return {false, err};
                         }
                         if (haveGrid[num-1]) {
-                            std::string err = "Duplicate number " + std::to_string(num) + " in answer.";
+                            string err = "Duplicate number " + to_string(num) + " in answer.";
                             return {false, err};
                         }                
                         haveGrid[num-1] = true;
@@ -191,11 +185,9 @@ private:
         }
     }
 
-    std::string in_file;
-    std::string out_file;
-    int prob_num;
-    std::vector<std::vector<int>> arr; // D * D
-    std::vector<std::vector<int>> ans; // D * D
+    FileIO fileIO;
+    vector<vector<int>> arr; // D * D
+    vector<vector<int>> ans; // D * D
     int N;
     int D;
     int total_count;
