@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <random>
 #include <chrono>
-#include "../IOUtil.hpp"
 #include "../Solver.hpp"
 
 struct Graph
@@ -24,7 +23,7 @@ struct Graph
 class PrimeTreeSolver final : public Solver
 {
 public:
-    PrimeTreeSolver(string in_file_) : fileIO(FileIO(in_file_)) {}
+    PrimeTreeSolver(string in_file_) : Solver(in_file_) {}
 
     void getInput() override {
         ifstream& fin = fileIO.fin;
@@ -37,12 +36,42 @@ public:
     }
 
     void solve() override {
-        getInput();
         for (int i = 0; i < tc; i++) {
             solver(graphs[i], i);
         }
-        printScore();
-        getOutput();
+    }
+
+    void validate() override {
+        for (auto v : ans) {
+            vector<int> tmpv(v);
+            sort(tmpv.begin(), tmpv.end());
+            for (int i = 0; i < v.size(); i++) {
+                if (tmpv[i] != i+1) {
+                    cout << "Error: " << tmpv[i] << " is unexpected." << '\n';
+                    return;
+                }
+            }
+        }
+
+        int total_edge = 0;
+        int bad_edge = 0;
+        for (int i = 0; i < tc; i++) {
+            total_edge += (graphs[i].V - 1);
+            bad_edge += countBadEdge(ans[i], i);
+        }
+
+        double ratio = double(bad_edge)/double(total_edge);
+        cout << "Bad Edge: " << bad_edge << ", Total Edge: " << total_edge << ", Ratio: " << ratio << '\n';
+
+        int score = 0;
+        double score_table[10] = {0.4, 0.33, 0.26, 0.19, 0.12, 0.05, 0.01, 0.005, 0.001, 0.0};
+        for (int i = 0; i < 10; i++) {
+            if (ratio > score_table[i]) {
+                score = i; break;
+            }
+            else score = i+1;
+        }
+        cout << "Score: " << score << '\n';
     }
 
     void getOutput() override {
@@ -131,45 +160,8 @@ private:
         return bad_edge;
     }
 
-    void printScore() {
-        validate();
-        int total_edge = 0;
-        int bad_edge = 0;
-        for (int i = 0; i < tc; i++) {
-            total_edge += (graphs[i].V - 1);
-            bad_edge += countBadEdge(ans[i], i);
-        }
-
-        double ratio = double(bad_edge)/double(total_edge);
-        cout << "Bad Edge: " << bad_edge << ", Total Edge: " << total_edge << ", Ratio: " << ratio << '\n';
-
-        int score = 0;
-        double score_table[10] = {0.4, 0.33, 0.26, 0.19, 0.12, 0.05, 0.01, 0.005, 0.001, 0.0};
-        for (int i = 0; i < 10; i++) {
-            if (ratio > score_table[i]) {
-                score = i; break;
-            }
-            else score = i+1;
-        }
-        cout << "Score: " << score << '\n';
-    }
-
-    void validate() {
-        for (auto v : ans) {
-            vector<int> tmpv(v);
-            sort(tmpv.begin(), tmpv.end());
-            for (int i = 0; i < v.size(); i++) {
-                if (tmpv[i] != i+1) {
-                    cout << "Error: " << tmpv[i] << " is unexpected." << '\n';
-                    return;
-                }
-            }
-        }
-    }
-
     int gcd(int a, int b) { return b == 0 ? (a) : gcd(b, a%b); }
 
-    FileIO fileIO;
     int tc;
     vector<Graph> graphs;
     vector<vector<int>> ans;

@@ -28,7 +28,7 @@ fi
 
 # Compile
 echo "🔧 Compiling $SRC ..."
-g++-15 "$SRC" -o "$OUT"
+g++-15 -std=c++20 "$SRC" -o "$OUT"
 if [ $? -ne 0 ]; then
     echo "❌ Compilation failed!"
     exit 1

@@ -4,5 +4,5 @@
 int main(int argc, char* argv[]) {
     string filename = argv[1];
     PrimeTreeSolver solver(filename);
-    solver.solve();
+    solver.run();
 }

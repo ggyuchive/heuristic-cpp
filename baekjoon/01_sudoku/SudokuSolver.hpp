@@ -1,6 +1,5 @@
 #include <vector>
 #include <iostream>
-#include "../IOUtil.hpp"
 #include "../Solver.hpp"
 
 typedef vector<vector<bool>> BoolVec2;
@@ -10,7 +9,7 @@ class SudokuSolver final : public Solver
 {
 public:
     SudokuSolver(string in_file_)
-    : fileIO(FileIO(in_file_)), total_count(0), blank_count(0), filled_count(0) {}
+    : Solver(in_file_), total_count(0), blank_count(0), filled_count(0) {}
 
     void getInput() override {
         ifstream& fin = fileIO.fin;
@@ -30,13 +29,65 @@ public:
     }
 
     void solve() override {
-        getInput();
-        solver();
-        pair<bool, string> result = validate();
-        if (result.first)
-            getOutput();
-        else
-            cout << "Error: " << result.second << '\n';
+        int& prob_num = fileIO.problem_num;
+        cout << "Problem: " << prob_num << ", Blank Count: " << blank_count << ", Total Count: " << total_count << '\n';
+        if (prob_num == 5)
+            constructSolver();
+        else if (prob_num == 1 || prob_num == 2)
+            bruteforceSolver();
+        //else
+        //    bruteforceSolver();
+    }
+
+    void validate() override {
+        for (int i = 0; i < D; i++) {
+            for (int j = 0; j < D; j++) {
+                if (arr[i][j] == 0 && ans[i][j] > 0)
+                    filled_count++;
+            }
+        }
+        for (int i = 0; i < D; i++) {
+            vector<bool> haveRow(D, false);
+            vector<bool> haveCol(D, false);
+            for (int j = 0; j < D; j++) {
+                int& numRow = ans[i][j];
+                int& numCol = ans[j][i];
+
+                if (numRow <= 0 || numRow > D) {
+                    cout << "Error: There is number " << numRow << " in answer." << '\n';
+                }
+                if (haveRow[numRow-1]) {
+                    cout << "Error: Duplicate number " << numRow << " in answer." << '\n';
+                }
+                haveRow[numRow-1] = true;
+
+                if (numCol <= 0 || numCol > D) {
+                    cout << "Error: There is number " << numCol << " in answer." << '\n';
+                }
+                if (haveCol[numCol-1]) {
+                    cout << "Error: Duplicate number " << numCol << " in answer." << '\n';
+                }                
+                haveCol[numCol-1] = true;
+            }
+        }
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                int sx = (i/N)*N; int sy = (j/N)*N;
+                vector<bool> haveGrid(D, false);
+                for (int p = sx; p < sx+N; p++) {
+                    for (int q = sy; q < sy+N; q++) {
+                        int& num = ans[p][q];
+                        if (num <= 0 || num > D) {
+                            cout << "Error: There is number " << num << " in answer." << '\n';
+                        }
+                        if (haveGrid[num-1]) {
+                            cout << "Error: Duplicate number " << num << " in answer." << '\n';
+                        }                
+                        haveGrid[num-1] = true;
+                    }
+                }
+            }
+        }
         cout << "Filled count: " << filled_count << '\n';
     }
 
@@ -49,17 +100,6 @@ public:
     }
 
 private:
-    void solver() {
-        int& prob_num = fileIO.problem_num;
-        cout << "Problem: " << prob_num << ", Blank Count: " << blank_count << ", Total Count: " << total_count << '\n';
-        if (prob_num == 5)
-            constructSolver();
-        else if (prob_num == 1 || prob_num == 2)
-            bruteforceSolver();
-        //else
-        //    bruteforceSolver();
-    }
-
     uint64_t bruteforceSolver() {
         BoolVec3 candidate(D, BoolVec2(D, vector<bool>(D, true)));
 
@@ -109,64 +149,6 @@ private:
         return complexity;
     }
 
-    pair<bool, string> validate() {
-        for (int i = 0; i < D; i++) {
-            for (int j = 0; j < D; j++) {
-                if (arr[i][j] == 0 && ans[i][j] > 0)
-                    filled_count++;
-            }
-        }
-        for (int i = 0; i < D; i++) {
-            vector<bool> haveRow(D, false);
-            vector<bool> haveCol(D, false);
-            for (int j = 0; j < D; j++) {
-                int& numRow = ans[i][j];
-                int& numCol = ans[j][i];
-
-                if (numRow <= 0 || numRow > D) {
-                    string err = "There is number " + to_string(numRow) + " in answer.";
-                    return {false, err};
-                }
-                if (haveRow[numRow-1]) {
-                    string err = "Duplicate number " + to_string(numRow) + " in answer.";
-                    return {false, err};
-                }
-                haveRow[numRow-1] = true;
-
-                if (numCol <= 0 || numCol > D) {
-                    string err = "There is number " + to_string(numCol) + " in answer.";
-                    return {false, err};
-                }
-                if (haveCol[numCol-1]) {
-                    string err = "Duplicate number " + to_string(numCol) + " in answer.";
-                    return {false, err};
-                }                
-                haveCol[numCol-1] = true;
-            }
-        }
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                int sx = (i/N)*N; int sy = (j/N)*N;
-                vector<bool> haveGrid(D, false);
-                for (int p = sx; p < sx+N; p++) {
-                    for (int q = sy; q < sy+N; q++) {
-                        int& num = ans[p][q];
-                        if (num <= 0 || num > D) {
-                            string err = "There is number " + to_string(num) + " in answer.";
-                            return {false, err};
-                        }
-                        if (haveGrid[num-1]) {
-                            string err = "Duplicate number " + to_string(num) + " in answer.";
-                            return {false, err};
-                        }                
-                        haveGrid[num-1] = true;
-                    }
-                }
-            }
-        }
-        return {true, ""};
-    }
-
     void constructSolver() {
         for (int a = 0; a < N; a++) {
             for (int b = 0; b < N; b++) {
@@ -185,7 +167,6 @@ private:
         }
     }
 
-    FileIO fileIO;
     vector<vector<int>> arr; // D * D
     vector<vector<int>> ans; // D * D
     int N;
